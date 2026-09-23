@@ -333,3 +333,226 @@ Con estos elementos, el equipo de IA dispondrá de una guía completa para conve
 
 **Referencias principales:** Documentación oficial Kaggle M5, artículos y notebooks de Kaggle sobre M5, y ejemplos de pipelines de forecasting (LightGBM/XGBoost) y métricas de series temporales.  
 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 📅 Día 1 — Entendimiento del dataset M5
+
+**Fecha:** 22 de septiembre de 2026  
+**Etapa:** Exploración y entendimiento de datos  
+**Dataset:** M5 Forecasting — Walmart
+
+## 1. Objetivo del día
+
+El objetivo de esta primera jornada fue **familiarizarnos con la estructura y el contenido del dataset M5**, identificar qué información real está disponible y determinar qué componentes serán necesarios simular posteriormente para construir nuestro sistema de gestión de inventario, reabastecimiento y toma de decisiones multiagente.
+
+Durante esta etapa se revisaron principalmente los archivos de **calendario, ventas y precios**, identificando sus principales variables y relaciones.
+
+---
+
+## 2. Exploración inicial de los datos
+
+El dataset M5 proporciona información histórica de operaciones de Walmart relacionada principalmente con **ventas, productos, tiendas, precios y calendario**.
+
+A partir de la exploración inicial se identificaron los siguientes componentes:
+
+### 🗓️ Calendar
+
+El archivo `calendar.csv` contiene la información temporal utilizada por Walmart para representar los días de operación del dataset.
+
+Entre las variables disponibles se encuentran:
+
+- Fecha.
+- Día de la semana.
+- Semana Walmart (`wm_yr_wk`).
+- Mes y año.
+- Identificador relativo del día (`d_1`, `d_2`, ...).
+- Eventos especiales.
+- Tipo de evento.
+- Indicadores relacionados con SNAP para determinados estados.
+
+El período histórico representado comienza en **2011 y se extiende hasta 2016**, permitiendo analizar patrones temporales, estacionalidad, días de la semana y posibles efectos asociados a eventos.
+
+Esta información será especialmente relevante posteriormente para el **forecasting de demanda**, ya que permitirá incorporar variables temporales y eventos como características del modelo.
+
+---
+
+### 🛒 Sales
+
+El archivo de ventas contiene el historial diario de unidades vendidas para diferentes combinaciones de **producto y tienda**.
+
+Durante la exploración encontramos:
+
+- **3.049 productos**
+- **10 tiendas**
+- **7 departamentos**
+- **3 estados**
+- **3 categorías principales**
+
+Las categorías identificadas fueron:
+
+```text
+['HOBBIES', 'HOUSEHOLD', 'FOODS']
+```
+
+Las ventas se encuentran inicialmente en un formato **wide**, donde cada día está representado como una columna:
+
+```text
+id | item_id | dept_id | cat_id | store_id | state_id | d_1 | d_2 | d_3 | ... 
+```
+
+Por ejemplo, `d_1`, `d_2` y `d_3` representan las ventas correspondientes a diferentes días del período histórico.
+
+Esta estructura deberá transformarse posteriormente a un formato **long**, más apropiado para análisis, modelamiento y almacenamiento:
+
+```text
+date | item_id | store_id | units_sold
+```
+
+La información de ventas será la principal fuente utilizada para construir el **modelo de pronóstico de demanda**.
+
+---
+
+### 💰 Prices
+
+El archivo `sell_prices.csv` contiene información histórica sobre los precios de venta de los productos por tienda y semana.
+
+Durante la exploración inicial se identificó:
+
+- **Precio mínimo:** 0,01
+- **Precio máximo:** 107,32
+- **Precio promedio:** 4,41
+
+Los precios podrán utilizarse posteriormente como una variable explicativa dentro del modelo de forecasting, permitiendo analizar posibles relaciones entre cambios de precio y comportamiento de la demanda.
+
+---
+
+## 3. Información disponible vs. información faltante
+
+Una de las conclusiones más importantes de esta primera exploración fue identificar que **M5 no representa todo el proceso de Supply Chain**.
+
+El dataset contiene información real sobre ventas, productos, tiendas, precios y calendario, pero no proporciona directamente información operacional como inventarios, proveedores u órdenes de compra.
+
+Por esta razón, el proyecto se dividirá conceptualmente en tres fuentes de información.
+
+### 🟢 Datos reales proporcionados por M5
+
+- Productos.
+- Tiendas.
+- Ventas históricas.
+- Precios de venta.
+- Calendario.
+- Eventos.
+- Información de SNAP.
+
+### 🟡 Datos que no proporciona M5 y deberán ser simulados
+
+- Inventario actual.
+- Historial de inventario.
+- Proveedores.
+- Lead times.
+- Órdenes de compra.
+- Costos de transporte.
+- Costos de almacenamiento.
+- Presupuesto.
+- Costos asociados al quiebre de stock.
+- Restricciones de capacidad de proveedores.
+
+Estos datos no deben presentarse como información real de Walmart. Serán **variables simuladas y documentadas explícitamente** para construir el entorno de simulación.
+
+### 🔵 Datos generados por los modelos
+
+A partir de los datos reales y simulados, el sistema podrá generar información adicional mediante modelos de Machine Learning, optimización y simulación:
+
+- Forecast de demanda.
+- Riesgo de stockout.
+- Punto de reorden.
+- Stock de seguridad.
+- Cantidad recomendada de compra.
+- Selección de proveedor.
+- Costo esperado.
+- Impacto presupuestario.
+
+---
+
+## 4. Primera conclusión
+
+La exploración del dataset permitió confirmar que **M5 es una buena base para representar la demanda real del sistema**, pero no es suficiente por sí solo para representar una cadena de suministro completa.
+
+Por esta razón, la arquitectura del proyecto deberá combinar:
+
+```text
+                 DATOS REALES
+                      │
+                      ▼
+              ┌───────────────┐
+              │   Dataset M5  │
+              └───────┬───────┘
+                      │
+          ┌───────────┼───────────┐
+          ▼           ▼           ▼
+       Ventas      Precios    Calendario
+          │           │           │
+          └───────────┼───────────┘
+                      ▼
+             Forecast de demanda
+                      │
+                      ▼
+             ┌─────────────────┐
+             │ Datos simulados │
+             ├─────────────────┤
+             │ Inventario      │
+             │ Proveedores     │
+             │ Lead Times      │
+             │ Costos          │
+             │ Órdenes         │
+             └────────┬────────┘
+                      ▼
+             Sistema multiagente
+                      │
+                      ▼
+              Decisiones de
+              reabastecimiento
+```
+
+La separación entre **datos reales, datos simulados y resultados generados por los modelos** será fundamental para mantener la trazabilidad y evitar presentar como reales variables que fueron creadas específicamente para la simulación.
+
+---
+
+## 5. Resultado del Día 1
+
+Al finalizar esta jornada se logró:
+
+- [x] Descargar y cargar los archivos M5 en Google Colab.
+- [x] Identificar la estructura general del dataset.
+- [x] Analizar el archivo `calendar.csv`.
+- [x] Analizar la estructura del archivo de ventas.
+- [x] Identificar productos, tiendas, departamentos, estados y categorías.
+- [x] Analizar el archivo `sell_prices.csv`.
+- [x] Identificar las principales variables disponibles.
+- [x] Identificar las variables que M5 no proporciona.
+- [x] Diferenciar entre datos reales, datos simulados y datos generados por modelos.
+- [ ] Transformar las ventas de formato **wide → long**.
+- [ ] Construir las tablas normalizadas del sistema.
+- [ ] Comenzar el análisis exploratorio de la demanda.
+
+---
+
+## 6. Próximo paso — Día 2
+
+El siguiente objetivo será **estructurar y limpiar los datos para que puedan utilizarse posteriormente en el sistema**.
+
+Las principales tareas serán:
+
+1. Transformar las ventas de formato `wide` a `long`.
+2. Relacionar `d_1`, `d_2`, etc. con las fechas reales mediante `calendar.csv`.
+3. Crear las estructuras conceptuales de:
+   - `PRODUCT`
+   - `STORE`
+   - `SALES`
+   - `PRICE`
+   - `CALENDAR`
+4. Revisar valores nulos y duplicados.
+5. Verificar la consistencia entre productos, tiendas, ventas y precios.
+6. Preparar una primera versión limpia de los datos para el análisis exploratorio.
+
+**Objetivo del Día 2:** pasar de simplemente *entender el dataset* a tener una **estructura de datos limpia y preparada para modelamiento**.
+
